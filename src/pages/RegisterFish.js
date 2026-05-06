@@ -34,15 +34,28 @@ export default function RegisterFish({ user }) {
   const [listaPeixes, setListaPeixes] = useState([]);
   const [filtroEspecie, setFiltroEspecie] = useState("");
 
-  // 🌙 LUA CORRIGIDA (PRECISA)
+  // 🌙 LUA ULTRA PRECISA (8 fases)
   const getFaseLua = (d, m, a) => {
-    const date = new Date(Date.UTC(a, m - 1, d));
+    const year = parseInt(a);
+    const month = parseInt(m);
+    const day = parseInt(d);
 
-    const synodicMonth = 29.53058867;
-    const reference = new Date(Date.UTC(2000, 0, 6, 18, 14));
+    const c = Math.floor((14 - month) / 12);
+    const y = year - c;
+    const mo = month + 12 * c - 2;
 
-    const days = (date - reference) / (1000 * 60 * 60 * 24);
-    const phase = (days % synodicMonth + synodicMonth) % synodicMonth;
+    const jd =
+      day +
+      Math.floor((153 * mo + 2) / 5) +
+      365 * y +
+      Math.floor(y / 4) -
+      Math.floor(y / 100) +
+      Math.floor(y / 400) -
+      32045;
+
+    const daysSinceNew = jd - 2451550.1;
+    const newMoons = daysSinceNew / 29.53058867;
+    const phase = (newMoons - Math.floor(newMoons)) * 29.53058867;
 
     if (phase < 1.84566) return "Nova";
     if (phase < 5.53699) return "Crescente";
@@ -140,7 +153,7 @@ export default function RegisterFish({ user }) {
     return listaPeixes.filter((p) => p.especie === filtroEspecie);
   };
 
-  // ✅ CORREÇÃO DO TOTAL
+  // ✅ TOTAL CORRIGIDO
   const peixesVisiveis = peixesFiltrados();
   const totalPeixes = peixesVisiveis.length;
 
@@ -148,7 +161,7 @@ export default function RegisterFish({ user }) {
   const gerarDados = (campo) => {
     const contagem = {};
 
-    peixesFiltrados().forEach((p) => {
+    peixesVisiveis.forEach((p) => {
       let chave = p[campo];
       if (!chave) return;
 
@@ -197,7 +210,9 @@ export default function RegisterFish({ user }) {
   const especiesUnicas = [...new Set(listaPeixes.map((p) => p.especie))];
 
   const dadosHora = gerarDados("hora");
-  const maxValor = Math.max(...dadosHora.map(d => d.value));
+  const maxValor = dadosHora.length > 0
+    ? Math.max(...dadosHora.map(d => d.value))
+    : 0;
 
   return (
     <div style={{ padding: 20, fontFamily: "Arial" }}>
@@ -313,10 +328,10 @@ export default function RegisterFish({ user }) {
       {/* LISTA */}
       {peixesVisiveis.map((item) => (
         <div key={item.id} style={{ padding: 15, border: "1px solid #ddd", marginBottom: 10 }}>
-          <img 
-            src={item.foto || fishImg} 
-            alt={item.especie || "peixe"} 
-            style={{ width: 200 }} 
+          <img
+            src={item.foto || fishImg}
+            alt={item.especie || "peixe"}
+            style={{ width: 200 }}
           />
 
           <p>🐟 {item.especie}</p>
