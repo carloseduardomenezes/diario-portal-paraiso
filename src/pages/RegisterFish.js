@@ -205,7 +205,6 @@ export default function RegisterFish({ user }) {
           ))}
         </select>
 
-        {/* 🔥 TOTAL */}
         <h3 style={{ marginTop: 10 }}>
           🐟 Total de peixes: {totalPeixes}
         </h3>
@@ -270,7 +269,12 @@ export default function RegisterFish({ user }) {
       {/* LISTA */}
       {peixesFiltrados().map((item) => (
         <div key={item.id} style={{ padding: 15, border: "1px solid #ddd", marginBottom: 10 }}>
-          <img src={item.foto || fishImg} style={{ width: 200 }} />
+          <img 
+            src={item.foto || fishImg} 
+            alt={item.especie || "peixe"} 
+            style={{ width: 200 }} 
+          />
+
           <p>🐟 {item.especie}</p>
           <p>⚖️ {item.peso}</p>
           <p>🎣 {item.isca}</p>
