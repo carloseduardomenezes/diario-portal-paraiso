@@ -34,24 +34,24 @@ export default function RegisterFish({ user }) {
   const [listaPeixes, setListaPeixes] = useState([]);
   const [filtroEspecie, setFiltroEspecie] = useState("");
 
-  // 🌙 LUA CORRIGIDA (8 fases)
+  // 🌙 LUA CORRIGIDA (PRECISA)
   const getFaseLua = (d, m, a) => {
-    const date = new Date(a, m - 1, d);
+    const date = new Date(Date.UTC(a, m - 1, d));
 
-    const lp = 2551443;
-    const new_moon = new Date(Date.UTC(1970, 0, 7, 20, 35, 0));
+    const synodicMonth = 29.53058867;
+    const reference = new Date(Date.UTC(2000, 0, 6, 18, 14));
 
-    const phase = ((date.getTime() - new_moon.getTime()) / 1000) % lp;
-    const days = phase / (24 * 3600);
+    const days = (date - reference) / (1000 * 60 * 60 * 24);
+    const phase = (days % synodicMonth + synodicMonth) % synodicMonth;
 
-    if (days < 1.84566) return "Nova";
-    if (days < 5.53699) return "Crescente";
-    if (days < 9.22831) return "Quarto Crescente";
-    if (days < 12.91963) return "Gibosa Crescente";
-    if (days < 16.61096) return "Cheia";
-    if (days < 20.30228) return "Gibosa Minguante";
-    if (days < 23.99361) return "Quarto Minguante";
-    if (days < 27.68493) return "Minguante";
+    if (phase < 1.84566) return "Nova";
+    if (phase < 5.53699) return "Crescente";
+    if (phase < 9.22831) return "Quarto Crescente";
+    if (phase < 12.91963) return "Gibosa Crescente";
+    if (phase < 16.61096) return "Cheia";
+    if (phase < 20.30228) return "Gibosa Minguante";
+    if (phase < 23.99361) return "Quarto Minguante";
+    if (phase < 27.68493) return "Minguante";
 
     return "Nova";
   };
@@ -140,7 +140,9 @@ export default function RegisterFish({ user }) {
     return listaPeixes.filter((p) => p.especie === filtroEspecie);
   };
 
-  const totalPeixes = peixesFiltrados().length;
+  // ✅ CORREÇÃO DO TOTAL
+  const peixesVisiveis = peixesFiltrados();
+  const totalPeixes = peixesVisiveis.length;
 
   // 📊 DADOS
   const gerarDados = (campo) => {
@@ -309,7 +311,7 @@ export default function RegisterFish({ user }) {
       <hr />
 
       {/* LISTA */}
-      {peixesFiltrados().map((item) => (
+      {peixesVisiveis.map((item) => (
         <div key={item.id} style={{ padding: 15, border: "1px solid #ddd", marginBottom: 10 }}>
           <img 
             src={item.foto || fishImg} 
