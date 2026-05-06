@@ -132,7 +132,7 @@ export default function RegisterFish({ user }) {
     return listaPeixes.filter((p) => p.especie === filtroEspecie);
   };
 
-  // 📊 total geral ou filtrado
+  // 📊 total
   const totalPeixes = peixesFiltrados().length;
 
   // 📊 dados
@@ -163,7 +163,7 @@ export default function RegisterFish({ user }) {
 
     if (campo === "mes") {
       const ordem = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
-      result.sort((a, b) => ordem.indexOf(a.name) - ordem.indexOf(b.name));
+      result.sort((a, b) => ordem.indexOf(a.name.toLowerCase()) - ordem.indexOf(b.name.toLowerCase()));
     } else {
       result.sort((a, b) => b.value - a.value);
     }
@@ -196,7 +196,7 @@ export default function RegisterFish({ user }) {
 
       <hr />
 
-      {/* FILTRO */}
+      {/* FILTRO + TOTAL MELHORADO */}
       <div>
         <select value={filtroEspecie} onChange={(e) => setFiltroEspecie(e.target.value)}>
           <option value="">Todas espécies</option>
@@ -205,9 +205,17 @@ export default function RegisterFish({ user }) {
           ))}
         </select>
 
-        <h3 style={{ marginTop: 10 }}>
-          🐟 Total de peixes: {totalPeixes}
-        </h3>
+        <div style={{
+          marginTop: 10,
+          padding: 10,
+          background: "#f1f5f9",
+          borderRadius: 10,
+          fontWeight: "bold"
+        }}>
+          {filtroEspecie
+            ? `🐟 Total de ${filtroEspecie}: ${totalPeixes}`
+            : `🐟 Total geral: ${totalPeixes}`}
+        </div>
       </div>
 
       <hr />
