@@ -34,17 +34,26 @@ export default function RegisterFish({ user }) {
   const [listaPeixes, setListaPeixes] = useState([]);
   const [filtroEspecie, setFiltroEspecie] = useState("");
 
-  // 🌙 LUA
+  // 🌙 LUA CORRIGIDA (8 fases)
   const getFaseLua = (d, m, a) => {
-    const data = new Date(a, m - 1, d);
-    const diff = data - new Date(2001, 0, 1);
-    const dias = diff / (1000 * 60 * 60 * 24);
-    const fase = Math.floor(dias % 29.53);
+    const date = new Date(a, m - 1, d);
 
-    if (fase < 7) return "Nova";
-    if (fase < 15) return "Crescente";
-    if (fase < 22) return "Cheia";
-    return "Minguante";
+    const lp = 2551443;
+    const new_moon = new Date(Date.UTC(1970, 0, 7, 20, 35, 0));
+
+    const phase = ((date.getTime() - new_moon.getTime()) / 1000) % lp;
+    const days = phase / (24 * 3600);
+
+    if (days < 1.84566) return "Nova";
+    if (days < 5.53699) return "Crescente";
+    if (days < 9.22831) return "Quarto Crescente";
+    if (days < 12.91963) return "Gibosa Crescente";
+    if (days < 16.61096) return "Cheia";
+    if (days < 20.30228) return "Gibosa Minguante";
+    if (days < 23.99361) return "Quarto Minguante";
+    if (days < 27.68493) return "Minguante";
+
+    return "Nova";
   };
 
   const comprimirImagem = (file) => {
@@ -126,16 +135,14 @@ export default function RegisterFish({ user }) {
     buscarPeixes();
   };
 
-  // 🔍 filtro
   const peixesFiltrados = () => {
     if (!filtroEspecie) return listaPeixes;
     return listaPeixes.filter((p) => p.especie === filtroEspecie);
   };
 
-  // 📊 total
   const totalPeixes = peixesFiltrados().length;
 
-  // 📊 dados
+  // 📊 DADOS
   const gerarDados = (campo) => {
     const contagem = {};
 
@@ -162,9 +169,23 @@ export default function RegisterFish({ user }) {
     }));
 
     if (campo === "mes") {
-      const ordem = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
-      result.sort((a, b) => ordem.indexOf(a.name.toLowerCase()) - ordem.indexOf(b.name.toLowerCase()));
-    } else {
+      const ordem = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+      result.sort((a, b) => ordem.indexOf(a.name) - ordem.indexOf(b.name));
+    }
+    else if (campo === "faseLua") {
+      const ordemLua = [
+        "Nova",
+        "Crescente",
+        "Quarto Crescente",
+        "Gibosa Crescente",
+        "Cheia",
+        "Gibosa Minguante",
+        "Quarto Minguante",
+        "Minguante"
+      ];
+      result.sort((a, b) => ordemLua.indexOf(a.name) - ordemLua.indexOf(b.name));
+    }
+    else {
       result.sort((a, b) => b.value - a.value);
     }
 
@@ -181,7 +202,6 @@ export default function RegisterFish({ user }) {
 
       <h1>🎣 Portal do Paraíso</h1>
 
-      {/* FORM */}
       <input placeholder="Espécie" value={especie} onChange={(e) => setEspecie(e.target.value)} />
       <input placeholder="Peso" value={peso} onChange={(e) => setPeso(e.target.value)} />
       <input placeholder="Hora" value={hora} onChange={(e) => setHora(e.target.value)} />
@@ -196,7 +216,6 @@ export default function RegisterFish({ user }) {
 
       <hr />
 
-      {/* FILTRO + TOTAL MELHORADO */}
       <div>
         <select value={filtroEspecie} onChange={(e) => setFiltroEspecie(e.target.value)}>
           <option value="">Todas espécies</option>
@@ -205,22 +224,14 @@ export default function RegisterFish({ user }) {
           ))}
         </select>
 
-        <div style={{
-          marginTop: 10,
-          padding: 10,
-          background: "#f1f5f9",
-          borderRadius: 10,
-          fontWeight: "bold"
-        }}>
-          {filtroEspecie
-            ? `🐟 Total de ${filtroEspecie}: ${totalPeixes}`
-            : `🐟 Total geral: ${totalPeixes}`}
-        </div>
+        <h3 style={{ marginTop: 10 }}>
+          🐟 Total de peixes: {totalPeixes}
+        </h3>
       </div>
 
       <hr />
 
-      {/* GRÁFICOS */}
+      {/* HORÁRIO */}
       <h2>📊 Horário</h2>
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={dadosHora}>
@@ -239,6 +250,7 @@ export default function RegisterFish({ user }) {
         </BarChart>
       </ResponsiveContainer>
 
+      {/* ISCA */}
       <h2>🎣 Isca</h2>
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={gerarDados("isca")}>
@@ -250,6 +262,7 @@ export default function RegisterFish({ user }) {
         </BarChart>
       </ResponsiveContainer>
 
+      {/* MES */}
       <h2>📅 Meses</h2>
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={gerarDados("mes")}>
@@ -261,6 +274,7 @@ export default function RegisterFish({ user }) {
         </BarChart>
       </ResponsiveContainer>
 
+      {/* LUA */}
       <h2>🌙 Lua</h2>
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={gerarDados("faseLua")}>
@@ -268,7 +282,27 @@ export default function RegisterFish({ user }) {
           <XAxis dataKey="name" />
           <YAxis />
           <Tooltip />
-          <Bar dataKey="value" fill="#a855f7" />
+          <Bar dataKey="value">
+            {gerarDados("faseLua").map((entry, index) => {
+              const cores = {
+                "Nova": "#111827",
+                "Crescente": "#60a5fa",
+                "Quarto Crescente": "#3b82f6",
+                "Gibosa Crescente": "#93c5fd",
+                "Cheia": "#fde047",
+                "Gibosa Minguante": "#c084fc",
+                "Quarto Minguante": "#a855f7",
+                "Minguante": "#6b7280"
+              };
+
+              return (
+                <Cell
+                  key={index}
+                  fill={cores[entry.name] || "#a855f7"}
+                />
+              );
+            })}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
 
@@ -287,7 +321,22 @@ export default function RegisterFish({ user }) {
           <p>⚖️ {item.peso}</p>
           <p>🎣 {item.isca}</p>
           <p>📅 {item.dia}/{item.mes}/{item.ano}</p>
-          <p>🌙 {item.faseLua}</p>
+
+          <p>
+            {(() => {
+              const emojis = {
+                "Nova": "🌑",
+                "Crescente": "🌒",
+                "Quarto Crescente": "🌓",
+                "Gibosa Crescente": "🌔",
+                "Cheia": "🌕",
+                "Gibosa Minguante": "🌖",
+                "Quarto Minguante": "🌗",
+                "Minguante": "🌘"
+              };
+              return `${emojis[item.faseLua] || "🌙"} ${item.faseLua}`;
+            })()}
+          </p>
 
           <button onClick={() => deletarPeixe(item.id)}>Excluir</button>
         </div>
