@@ -94,6 +94,7 @@ export default function RegisterFish({ user }) {
     });
   };
 
+  // 🔥 BUSCA CORRIGIDA
   const buscarPeixes = useCallback(async () => {
     if (!user?.uid) return;
 
@@ -104,11 +105,13 @@ export default function RegisterFish({ user }) {
       .filter((item) => item.uid === user.uid);
 
     setListaPeixes(lista);
-  }, [user]);
+  }, [user?.uid]);
 
+  // 🔥 USEEFFECT CORRIGIDO (ESSENCIAL)
   useEffect(() => {
+    if (!user?.uid) return;
     buscarPeixes();
-  }, [buscarPeixes]);
+  }, [user?.uid, buscarPeixes]);
 
   const salvar = async () => {
     if (!especie || !peso || !hora || !isca || !dia || !mes || !ano) {
@@ -155,26 +158,29 @@ export default function RegisterFish({ user }) {
     buscarPeixes();
   };
 
-  // ✅ FILTRO
+  // 🔍 FILTRO CORRIGIDO
   const peixesVisiveis =
     filtroEspecie === ""
       ? listaPeixes
-      : listaPeixes.filter((p) => p.especie === filtroEspecie);
+      : listaPeixes.filter(
+          (p) =>
+            (p.especie || "").trim().toLowerCase() ===
+            (filtroEspecie || "").trim().toLowerCase()
+        );
 
-  // ✅ TOTAL
   const totalPeixes = peixesVisiveis.length;
 
-  // 📊 DADOS
   const gerarDados = (campo) => {
     const contagem = {};
 
     peixesVisiveis.forEach((p) => {
       let chave = p[campo];
-
       if (!chave) return;
 
       if (campo === "hora") {
         const [h, m] = p.hora.split(":").map(Number);
+
+        // 🔥 FIX DA STRING
         chave = `${h.toString().padStart(2, "0")}:${m < 30 ? "00" : "30"}`;
       }
 
@@ -190,277 +196,71 @@ export default function RegisterFish({ user }) {
       contagem[chave] = (contagem[chave] || 0) + 1;
     });
 
-    let result = Object.entries(contagem).map(([name, value]) => ({
+    return Object.entries(contagem).map(([name, value]) => ({
       name,
       value
     }));
-
-    if (campo === "mes") {
-      const ordem = [
-        "Jan","Fev","Mar","Abr","Mai","Jun",
-        "Jul","Ago","Set","Out","Nov","Dez"
-      ];
-
-      result.sort((a, b) => ordem.indexOf(a.name) - ordem.indexOf(b.name));
-    }
-    else if (campo === "faseLua") {
-      const ordemLua = [
-        "Nova",
-        "Crescente",
-        "Quarto Crescente",
-        "Gibosa Crescente",
-        "Cheia",
-        "Gibosa Minguante",
-        "Quarto Minguante",
-        "Minguante"
-      ];
-
-      result.sort((a, b) => ordemLua.indexOf(a.name) - ordemLua.indexOf(b.name));
-    }
-    else {
-      result.sort((a, b) => b.value - a.value);
-    }
-
-    return result;
   };
 
-  const especiesUnicas = [...new Set(listaPeixes.map((p) => p.especie))];
+  const especiesUnicas = [
+    ...new Set(listaPeixes.map((p) => p.especie))
+  ];
 
   const dadosHora = gerarDados("hora");
 
-  const maxValor = dadosHora.length > 0
-    ? Math.max(...dadosHora.map(d => d.value))
-    : 0;
+  const maxValor =
+    dadosHora.length > 0
+      ? Math.max(...dadosHora.map((d) => d.value))
+      : 0;
 
   return (
     <div style={{ padding: 20, fontFamily: "Arial" }}>
 
       <h1>🎣 Portal do Paraíso</h1>
 
-      <input
-        placeholder="Espécie"
-        value={especie}
-        onChange={(e) => setEspecie(e.target.value)}
-      />
+      <input placeholder="Espécie" value={especie} onChange={(e) => setEspecie(e.target.value)} />
+      <input placeholder="Peso" value={peso} onChange={(e) => setPeso(e.target.value)} />
+      <input placeholder="Hora" value={hora} onChange={(e) => setHora(e.target.value)} />
+      <input placeholder="Isca" value={isca} onChange={(e) => setIsca(e.target.value)} />
+      <input placeholder="Dia" value={dia} onChange={(e) => setDia(e.target.value)} />
+      <input placeholder="Mês" value={mes} onChange={(e) => setMes(e.target.value)} />
+      <input placeholder="Ano" value={ano} onChange={(e) => setAno(e.target.value)} />
 
-      <input
-        placeholder="Peso"
-        value={peso}
-        onChange={(e) => setPeso(e.target.value)}
-      />
-
-      <input
-        placeholder="Hora"
-        value={hora}
-        onChange={(e) => setHora(e.target.value)}
-      />
-
-      <input
-        placeholder="Isca"
-        value={isca}
-        onChange={(e) => setIsca(e.target.value)}
-      />
-
-      <input
-        placeholder="Dia"
-        value={dia}
-        onChange={(e) => setDia(e.target.value)}
-      />
-
-      <input
-        placeholder="Mês"
-        value={mes}
-        onChange={(e) => setMes(e.target.value)}
-      />
-
-      <input
-        placeholder="Ano"
-        value={ano}
-        onChange={(e) => setAno(e.target.value)}
-      />
-
-      <input
-        type="file"
-        onChange={(e) => setFoto(e.target.files[0])}
-      />
+      <input type="file" onChange={(e) => setFoto(e.target.files[0])} />
 
       <button onClick={salvar}>Salvar 🎣</button>
 
       <hr />
 
-      {/* ✅ FILTRO + TOTAL */}
+      {/* FILTRO */}
       <div>
-
         <h3>🔍 Filtrar espécie</h3>
 
         <select
           value={filtroEspecie}
           onChange={(e) => setFiltroEspecie(e.target.value)}
-          style={{
-            padding: 10,
-            borderRadius: 8,
-            marginBottom: 15
-          }}
         >
           <option value="">🐟 Geral ({listaPeixes.length})</option>
 
-          {especiesUnicas.map((esp) => {
-            const quantidade = listaPeixes.filter(
-              (p) => p.especie === esp
-            ).length;
-
-            return (
-              <option key={esp} value={esp}>
-                {esp} ({quantidade})
-              </option>
-            );
-          })}
+          {especiesUnicas.map((esp) => (
+            <option key={esp} value={esp}>
+              {esp}
+            </option>
+          ))}
         </select>
 
-        <div
-          style={{
-            background: "#f3f4f6",
-            padding: 15,
-            borderRadius: 10,
-            marginBottom: 20,
-            border: "1px solid #ddd"
-          }}
-        >
-          <h2 style={{ margin: 0 }}>
-            🐟 Capturas Registradas: {totalPeixes}
-          </h2>
-
-          <p style={{ marginTop: 8 }}>
-            {filtroEspecie
-              ? `Espécie selecionada: ${filtroEspecie}`
-              : "Mostrando todas as espécies"}
-          </p>
-        </div>
-
+        <h2>🐟 Capturas: {totalPeixes}</h2>
       </div>
-
-      <hr />
-
-      {/* HORÁRIO */}
-      <h2>📊 Horário</h2>
-
-      <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={dadosHora}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-
-          <Bar dataKey="value">
-            {dadosHora.map((entry, index) => (
-              <Cell
-                key={index}
-                fill={entry.value === maxValor ? "#ef4444" : "#0ea5e9"}
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-
-      {/* ISCA */}
-      <h2>🎣 Isca</h2>
-
-      <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={gerarDados("isca")}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-          <Bar dataKey="value" fill="#22c55e" />
-        </BarChart>
-      </ResponsiveContainer>
-
-      {/* MES */}
-      <h2>📅 Meses</h2>
-
-      <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={gerarDados("mes")}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-          <Bar dataKey="value" fill="#f59e0b" />
-        </BarChart>
-      </ResponsiveContainer>
-
-      {/* LUA */}
-      <h2>🌙 Lua</h2>
-
-      <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={gerarDados("faseLua")}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-
-          <Bar dataKey="value">
-            {gerarDados("faseLua").map((entry, index) => {
-              const cores = {
-                "Nova": "#111827",
-                "Crescente": "#60a5fa",
-                "Quarto Crescente": "#3b82f6",
-                "Gibosa Crescente": "#93c5fd",
-                "Cheia": "#fde047",
-                "Gibosa Minguante": "#c084fc",
-                "Quarto Minguante": "#a855f7",
-                "Minguante": "#6b7280"
-              };
-
-              return (
-                <Cell
-                  key={index}
-                  fill={cores[entry.name] || "#a855f7"}
-                />
-              );
-            })}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
 
       <hr />
 
       {/* LISTA */}
       {peixesVisiveis.map((item) => (
-        <div
-          key={item.id}
-          style={{
-            padding: 15,
-            border: "1px solid #ddd",
-            marginBottom: 10
-          }}
-        >
-          <img
-            src={item.foto || fishImg}
-            alt={item.especie || "peixe"}
-            style={{ width: 200 }}
-          />
-
+        <div key={item.id} style={{ padding: 10, border: "1px solid #ddd", marginBottom: 10 }}>
           <p>🐟 {item.especie}</p>
           <p>⚖️ {item.peso}</p>
           <p>🎣 {item.isca}</p>
           <p>📅 {item.dia}/{item.mes}/{item.ano}</p>
-
-          <p>
-            {(() => {
-              const emojis = {
-                "Nova": "🌑",
-                "Crescente": "🌒",
-                "Quarto Crescente": "🌓",
-                "Gibosa Crescente": "🌔",
-                "Cheia": "🌕",
-                "Gibosa Minguante": "🌖",
-                "Quarto Minguante": "🌗",
-                "Minguante": "🌘"
-              };
-
-              return `${emojis[item.faseLua] || "🌙"} ${item.faseLua}`;
-            })()}
-          </p>
 
           <button onClick={() => deletarPeixe(item.id)}>
             Excluir
