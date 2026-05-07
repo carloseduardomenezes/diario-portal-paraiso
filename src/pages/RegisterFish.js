@@ -95,6 +95,8 @@ export default function RegisterFish({ user }) {
   };
 
   const buscarPeixes = useCallback(async () => {
+    if (!user?.uid) return;
+
     const dados = await getDocs(collection(db, "peixes"));
 
     const lista = dados.docs
@@ -105,8 +107,8 @@ export default function RegisterFish({ user }) {
   }, [user]);
 
   useEffect(() => {
-    if (user) buscarPeixes();
-  }, [user, buscarPeixes]);
+    buscarPeixes();
+  }, [buscarPeixes]);
 
   const salvar = async () => {
     if (!especie || !peso || !hora || !isca || !dia || !mes || !ano) {
@@ -115,7 +117,10 @@ export default function RegisterFish({ user }) {
     }
 
     let fotoComprimida = null;
-    if (foto) fotoComprimida = await comprimirImagem(foto);
+
+    if (foto) {
+      fotoComprimida = await comprimirImagem(foto);
+    }
 
     await addDoc(collection(db, "peixes"), {
       especie,
@@ -144,17 +149,19 @@ export default function RegisterFish({ user }) {
 
   const deletarPeixe = async (id) => {
     if (!window.confirm("Excluir captura?")) return;
+
     await deleteDoc(doc(db, "peixes", id));
+
     buscarPeixes();
   };
 
-  const peixesFiltrados = () => {
-    if (!filtroEspecie) return listaPeixes;
-    return listaPeixes.filter((p) => p.especie === filtroEspecie);
-  };
+  // ✅ FILTRO
+  const peixesVisiveis =
+    filtroEspecie === ""
+      ? listaPeixes
+      : listaPeixes.filter((p) => p.especie === filtroEspecie);
 
-  // ✅ TOTAL CORRIGIDO
-  const peixesVisiveis = peixesFiltrados();
+  // ✅ TOTAL
   const totalPeixes = peixesVisiveis.length;
 
   // 📊 DADOS
@@ -163,6 +170,7 @@ export default function RegisterFish({ user }) {
 
     peixesVisiveis.forEach((p) => {
       let chave = p[campo];
+
       if (!chave) return;
 
       if (campo === "hora") {
@@ -171,7 +179,11 @@ export default function RegisterFish({ user }) {
       }
 
       if (campo === "mes") {
-        const nomes = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+        const nomes = [
+          "Jan","Fev","Mar","Abr","Mai","Jun",
+          "Jul","Ago","Set","Out","Nov","Dez"
+        ];
+
         chave = nomes[p.mes - 1];
       }
 
@@ -184,7 +196,11 @@ export default function RegisterFish({ user }) {
     }));
 
     if (campo === "mes") {
-      const ordem = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+      const ordem = [
+        "Jan","Fev","Mar","Abr","Mai","Jun",
+        "Jul","Ago","Set","Out","Nov","Dez"
+      ];
+
       result.sort((a, b) => ordem.indexOf(a.name) - ordem.indexOf(b.name));
     }
     else if (campo === "faseLua") {
@@ -198,6 +214,7 @@ export default function RegisterFish({ user }) {
         "Quarto Minguante",
         "Minguante"
       ];
+
       result.sort((a, b) => ordemLua.indexOf(a.name) - ordemLua.indexOf(b.name));
     }
     else {
@@ -210,6 +227,7 @@ export default function RegisterFish({ user }) {
   const especiesUnicas = [...new Set(listaPeixes.map((p) => p.especie))];
 
   const dadosHora = gerarDados("hora");
+
   const maxValor = dadosHora.length > 0
     ? Math.max(...dadosHora.map(d => d.value))
     : 0;
@@ -219,43 +237,120 @@ export default function RegisterFish({ user }) {
 
       <h1>🎣 Portal do Paraíso</h1>
 
-      <input placeholder="Espécie" value={especie} onChange={(e) => setEspecie(e.target.value)} />
-      <input placeholder="Peso" value={peso} onChange={(e) => setPeso(e.target.value)} />
-      <input placeholder="Hora" value={hora} onChange={(e) => setHora(e.target.value)} />
-      <input placeholder="Isca" value={isca} onChange={(e) => setIsca(e.target.value)} />
-      <input placeholder="Dia" value={dia} onChange={(e) => setDia(e.target.value)} />
-      <input placeholder="Mês" value={mes} onChange={(e) => setMes(e.target.value)} />
-      <input placeholder="Ano" value={ano} onChange={(e) => setAno(e.target.value)} />
+      <input
+        placeholder="Espécie"
+        value={especie}
+        onChange={(e) => setEspecie(e.target.value)}
+      />
 
-      <input type="file" onChange={(e) => setFoto(e.target.files[0])} />
+      <input
+        placeholder="Peso"
+        value={peso}
+        onChange={(e) => setPeso(e.target.value)}
+      />
+
+      <input
+        placeholder="Hora"
+        value={hora}
+        onChange={(e) => setHora(e.target.value)}
+      />
+
+      <input
+        placeholder="Isca"
+        value={isca}
+        onChange={(e) => setIsca(e.target.value)}
+      />
+
+      <input
+        placeholder="Dia"
+        value={dia}
+        onChange={(e) => setDia(e.target.value)}
+      />
+
+      <input
+        placeholder="Mês"
+        value={mes}
+        onChange={(e) => setMes(e.target.value)}
+      />
+
+      <input
+        placeholder="Ano"
+        value={ano}
+        onChange={(e) => setAno(e.target.value)}
+      />
+
+      <input
+        type="file"
+        onChange={(e) => setFoto(e.target.files[0])}
+      />
 
       <button onClick={salvar}>Salvar 🎣</button>
 
       <hr />
 
+      {/* ✅ FILTRO + TOTAL */}
       <div>
-        <select value={filtroEspecie} onChange={(e) => setFiltroEspecie(e.target.value)}>
-          <option value="">Todas espécies</option>
-          {especiesUnicas.map((esp) => (
-            <option key={esp}>{esp}</option>
-          ))}
+
+        <h3>🔍 Filtrar espécie</h3>
+
+        <select
+          value={filtroEspecie}
+          onChange={(e) => setFiltroEspecie(e.target.value)}
+          style={{
+            padding: 10,
+            borderRadius: 8,
+            marginBottom: 15
+          }}
+        >
+          <option value="">🐟 Geral ({listaPeixes.length})</option>
+
+          {especiesUnicas.map((esp) => {
+            const quantidade = listaPeixes.filter(
+              (p) => p.especie === esp
+            ).length;
+
+            return (
+              <option key={esp} value={esp}>
+                {esp} ({quantidade})
+              </option>
+            );
+          })}
         </select>
 
-        <h3 style={{ marginTop: 10 }}>
-          🐟 Total de peixes: {totalPeixes}
-        </h3>
+        <div
+          style={{
+            background: "#f3f4f6",
+            padding: 15,
+            borderRadius: 10,
+            marginBottom: 20,
+            border: "1px solid #ddd"
+          }}
+        >
+          <h2 style={{ margin: 0 }}>
+            🐟 Capturas Registradas: {totalPeixes}
+          </h2>
+
+          <p style={{ marginTop: 8 }}>
+            {filtroEspecie
+              ? `Espécie selecionada: ${filtroEspecie}`
+              : "Mostrando todas as espécies"}
+          </p>
+        </div>
+
       </div>
 
       <hr />
 
       {/* HORÁRIO */}
       <h2>📊 Horário</h2>
+
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={dadosHora}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="name" />
           <YAxis />
           <Tooltip />
+
           <Bar dataKey="value">
             {dadosHora.map((entry, index) => (
               <Cell
@@ -269,6 +364,7 @@ export default function RegisterFish({ user }) {
 
       {/* ISCA */}
       <h2>🎣 Isca</h2>
+
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={gerarDados("isca")}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -281,6 +377,7 @@ export default function RegisterFish({ user }) {
 
       {/* MES */}
       <h2>📅 Meses</h2>
+
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={gerarDados("mes")}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -293,12 +390,14 @@ export default function RegisterFish({ user }) {
 
       {/* LUA */}
       <h2>🌙 Lua</h2>
+
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={gerarDados("faseLua")}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="name" />
           <YAxis />
           <Tooltip />
+
           <Bar dataKey="value">
             {gerarDados("faseLua").map((entry, index) => {
               const cores = {
@@ -327,7 +426,14 @@ export default function RegisterFish({ user }) {
 
       {/* LISTA */}
       {peixesVisiveis.map((item) => (
-        <div key={item.id} style={{ padding: 15, border: "1px solid #ddd", marginBottom: 10 }}>
+        <div
+          key={item.id}
+          style={{
+            padding: 15,
+            border: "1px solid #ddd",
+            marginBottom: 10
+          }}
+        >
           <img
             src={item.foto || fishImg}
             alt={item.especie || "peixe"}
@@ -351,11 +457,14 @@ export default function RegisterFish({ user }) {
                 "Quarto Minguante": "🌗",
                 "Minguante": "🌘"
               };
+
               return `${emojis[item.faseLua] || "🌙"} ${item.faseLua}`;
             })()}
           </p>
 
-          <button onClick={() => deletarPeixe(item.id)}>Excluir</button>
+          <button onClick={() => deletarPeixe(item.id)}>
+            Excluir
+          </button>
         </div>
       ))}
     </div>
